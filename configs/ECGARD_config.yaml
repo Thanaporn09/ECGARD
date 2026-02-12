@@ -1,0 +1,85 @@
+model:
+  type: ECGARD
+  args:
+    in_channels: 1
+    d_model: 64
+    patch_size: 16
+    dropout: 0.2
+    cond_mode: concat
+    enable_condition: true
+    depths: [1, 1, 1, 1]
+    dec_num_layers: 4
+    downsample: true
+    expand_dim: false
+    fusion: gate
+    use_dilated_conv: false
+    vq_num_codes: 512
+    vq_beta: 0.25
+    alpha_vq: 0.2
+    drop_path_rate: 0.4
+    disable_ar: true
+
+dataset:
+  type: ECGDenoiseDataset
+  train: 
+    root: "./Dataset/MIT-BIH_Arrhythmia_Database_nor/train"
+    fs: 360
+    augment:
+      enable: false
+      policy:
+        mode: random_n
+        n_apply: 2
+      methods:
+        jitter: {prob: 0.8}
+        scaling: {prob: 0.6}
+
+  val:
+    root: "./Dataset/MIT-BIH_Arrhythmia_Database_nor/val"
+    fs: 360
+    augment:
+      enable: false
+
+  test:
+    root: "./Dataset/MIT-BIH_Arrhythmia_Database_nor/test"
+    fs: 360
+    augment:
+      enable: false
+
+optimizer:
+  type: Adan
+  lr: 8.5e-4
+  betas: [0.02, 0.08, 0.01]
+  weight_decay: 0.02
+
+scheduler:
+  type: SequentialLR
+  milestones: [3]            
+  warmup:
+    start_factor: 0.2        
+    total_iters: 3           
+  cosine:
+    T_max: 145            
+    eta_min: 1.0e-6
+
+train:
+  batch_size: 16
+  epochs: 150                   
+
+loss:
+  type: L1ReconLoss
+  lambda_recon: 1.0
+  lambda_vq: 0.3
+
+eval:
+  metrics: ["RMSE","MAD","PRD","DeltaSNR","CC","CosSim"]
+
+checkpoint:
+  interval: 10
+  monitor: "RMSE"
+  mode: "min"
+  out_dir: "./Log_files/QTDatabase_nor/AR-SyDD-VQ_QTDatabase_nor_dim96_parallel_VQ512_VQ4_dr"
+  resume: False
+  keep_last: true
+  keep_best: true
+  keep_recent: 1     
+  auto_cleanup: true 
